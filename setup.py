@@ -1,6 +1,6 @@
 # --------------------------------------------
-# Copyright 2021, Grant Viklund
-# @Author: Grant Viklund
+# Copyright 2021, Grant Viklund, Roberto Himmelbauer
+# @Author: Grant Viklund, Roberto Himmelbauer
 # @Date:   2021-06-01 17:00:10
 # --------------------------------------------
 
@@ -25,7 +25,7 @@ package_metadata = {
     'description': "Tools for creating and managing multi-site integrations like API Keys and Tokens",
     'long_description': long_description,
     'url': 'https://github.com/renderbox/django-integrations/',
-    'author': 'Grant Viklund',
+    'author': 'Grant Viklund, Roberto Himmelbauer',
     'author_email': 'renderbox@gmail.com',
     'license': 'MIT license',
     'classifiers': [
