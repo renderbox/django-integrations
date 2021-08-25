@@ -1,14 +1,20 @@
 from django.contrib.sites.models import Site
-from django.shortcuts import render
-from django.views.generic import FormView
+from django.urls import reverse_lazy
+from django.views.generic import FormView, ListView
 from django.views.generic.edit import ModelFormMixin
 
 from core.forms import ZoomForm, VoucheryForm, AuthorizeNetForm
 
+from integrations.models import Credential
+class CredentialsListView(ListView):
+    template_name = 'core/credential_list.html'
+    model = Credential
+    queryset = Credential.objects.all()
 
 class ZoomFormView(FormView):
     template_name = "core/form.html"
     form_class = ZoomForm
+    success_url = reverse_lazy('integration-list')
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -26,6 +32,7 @@ class ZoomFormView(FormView):
 class VoucheryFormView(FormView):
     template_name = "core/form.html"
     form_class = VoucheryForm
+    success_url = reverse_lazy('integration-list')
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -43,6 +50,7 @@ class VoucheryFormView(FormView):
 class AuthorizeNetFormView(FormView):
     template_name = "core/form.html"
     form_class = AuthorizeNetForm
+    success_url = reverse_lazy('integration-list')
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
