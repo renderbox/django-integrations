@@ -49,11 +49,12 @@ setup(
         'djangorestframework',
     ],
     extras_require={
-        'dev': [                            # Packages needed by developers
+        'dev': [
+            'dj-database-url',
             'django-crispy-forms',
             'django-allauth',
             'django-extensions',
-            'ipython',
+            'psycopg2-binary',
         ],
         'test': [],                         # Packages needed to run tests
         'prod': [],                         # Packages needed to run in the deployment
