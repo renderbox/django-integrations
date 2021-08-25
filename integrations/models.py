@@ -2,8 +2,11 @@ from django.contrib.sites.models import Site
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from fernet_fields import EncryptedTextField
+
+
 def set_default_site_id():
     return Site.objects.get_current()
+
 
 #######################################
 # ABSTRACT MODELS
