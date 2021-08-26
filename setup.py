@@ -1,6 +1,6 @@
 # --------------------------------------------
-# Copyright 2021, Grant Viklund
-# @Author: Grant Viklund
+# Copyright 2021, Grant Viklund, Roberto Himmelbauer
+# @Author: Grant Viklund, Roberto Himmelbauer
 # @Date:   2021-06-01 17:00:10
 # --------------------------------------------
 
@@ -25,7 +25,7 @@ package_metadata = {
     'description': "Tools for creating and managing multi-site integrations like API Keys and Tokens",
     'long_description': long_description,
     'url': 'https://github.com/renderbox/django-integrations/',
-    'author': 'Grant Viklund',
+    'author': 'Grant Viklund, Roberto Himmelbauer',
     'author_email': 'renderbox@gmail.com',
     'license': 'MIT license',
     'classifiers': [
@@ -46,14 +46,15 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         'Django>=3.0,<3.2',
-        'djangorestframework',
+        'django-fernet-fields',
     ],
     extras_require={
-        'dev': [                            # Packages needed by developers
+        'dev': [
+            'dj-database-url',
             'django-crispy-forms',
             'django-allauth',
             'django-extensions',
-            'ipython',
+            'psycopg2-binary',
         ],
         'test': [],                         # Packages needed to run tests
         'prod': [],                         # Packages needed to run in the deployment
