@@ -32,3 +32,9 @@ class Credential(CreateUpdateModelBase):
     public_key = EncryptedTextField(null=True, blank=True, verbose_name=_("Public Key"))
     private_key = EncryptedTextField(null=True, blank=True, verbose_name=_("Private Key"))
     attrs = models.JSONField(null=True, blank=True, default=dict)
+
+    objects = models.Manager()
+
+    class Meta:
+        verbose_name = "Credential"
+        verbose_name_plural = "Credentials"
