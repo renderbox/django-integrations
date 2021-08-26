@@ -5,3 +5,4 @@ iso4217==1.6.20180829
 pytz==2021.1
 sqlparse==0.4.1
 typing-extensions==3.10.0.0
+django-fernet-fields==0.6
