@@ -83,7 +83,7 @@ WSGI_APPLICATION = 'develop.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
-
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 DATABASES = {}
 DATABASES['default'] = dj_database_url.config(
