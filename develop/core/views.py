@@ -1,15 +1,17 @@
 from django.contrib.sites.models import Site
 from django.urls import reverse_lazy
 from django.views.generic import FormView, ListView
-from django.views.generic.edit import ModelFormMixin
 
 from core.forms import ZoomForm, VoucheryForm, AuthorizeNetForm
 
 from integrations.models import Credential
+
+
 class CredentialsListView(ListView):
     template_name = 'core/credential_list.html'
     model = Credential
     queryset = Credential.objects.all()
+
 
 class ZoomFormView(FormView):
     template_name = "core/form.html"
