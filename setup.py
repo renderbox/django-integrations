@@ -45,8 +45,8 @@ setup(
     include_package_data=True,
     python_requires=">=3.6",
     install_requires=[
-        'Django>=3.0, <4.1',
-        'djfernet',
+        'Django>=3.0, <4.0',
+        'django-fernet-fields',
     ],
     extras_require={
         'dev': [
