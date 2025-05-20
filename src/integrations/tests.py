@@ -1,12 +1,39 @@
+import sys
+import os
+import django
+import base64
+import unittest
+from django.db import models, connection
+from django.test import TestCase, override_settings
 from django.contrib.sites.models import Site
-from django.test import TestCase
-
 from integrations.models import Credential
+from integrations.encrypted_fields import EncryptedTextField
+
+
+def setup_django():
+    sys.path.insert(
+        0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../develop"))
+    )
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "develop.settings")
+    django.setup()
+
+
+setup_django()
+
+
+class DummyModel(models.Model):
+    secret = EncryptedTextField()
+
+    class Meta:
+        app_label = "integrations"
 
 
 class CredentialModelTest(TestCase):
     def setUp(self):
-        self.site = Site.objects.create(domain="example.com", name="Example")
+        # Use or get the default Site to avoid UNIQUE constraint errors
+        self.site, _ = Site.objects.get_or_create(
+            domain="example.com", defaults={"name": "Example"}
+        )
 
     def test_create_credential(self):
         cred = Credential.objects.create(
@@ -34,3 +61,63 @@ class CredentialModelTest(TestCase):
         self.assertIsNone(cred.public_key)
         self.assertIsNone(cred.private_key)
         self.assertEqual(cred.attrs, {})
+
+
+@unittest.skipIf(
+    connection.vendor == "sqlite",
+    "Schema editor tests require PostgreSQL or another full DB backend.",
+)
+class EncryptedTextFieldTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        if connection.vendor == "sqlite":
+            # Use a transaction to disable constraints for the schema editor
+            with connection.cursor() as cursor:
+                cursor.execute("PRAGMA foreign_keys = OFF;")
+            connection.disable_constraint_checking()
+            connection._constraints_disabled = True
+        with connection.schema_editor() as schema_editor:
+            schema_editor.create_model(DummyModel)
+
+    @classmethod
+    def tearDownClass(cls):
+        if connection.vendor == "sqlite":
+            with connection.cursor() as cursor:
+                cursor.execute("PRAGMA foreign_keys = OFF;")
+            connection.disable_constraint_checking()
+            connection._constraints_disabled = True
+        with connection.schema_editor() as schema_editor:
+            schema_editor.delete_model(DummyModel)
+        super().tearDownClass()
+
+    @override_settings(
+        ENCRYPTED_FIELD_KEYS=[base64.urlsafe_b64encode(os.urandom(32)).decode()]
+    )
+    def test_encryption_and_decryption(self):
+        value = "super_secret_value"
+        obj = DummyModel.objects.create(secret=value)
+        obj.refresh_from_db()
+        self.assertEqual(obj.secret, value)
+
+    @override_settings(
+        ENCRYPTED_FIELD_KEYS=[base64.urlsafe_b64encode(os.urandom(32)).decode()]
+    )
+    def test_none_value(self):
+        obj = DummyModel.objects.create(secret=None)
+        obj.refresh_from_db()
+        self.assertIsNone(obj.secret)
+
+    @override_settings(
+        ENCRYPTED_FIELD_KEYS=[base64.urlsafe_b64encode(os.urandom(32)).decode()]
+    )
+    def test_encrypted_storage(self):
+        value = "encrypt_me"
+        obj = DummyModel.objects.create(secret=value)
+        # Check raw value in DB is not plaintext
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT secret FROM {DummyModel._meta.db_table} WHERE id=%s", [obj.id]
+            )
+            encrypted = cursor.fetchone()[0]
+        self.assertNotIn(value, encrypted)

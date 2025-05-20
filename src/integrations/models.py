@@ -1,7 +1,7 @@
 from django.contrib.sites.models import Site
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from fernet_fields import EncryptedTextField
+from .encrypted_fields import EncryptedTextField
 
 
 def set_default_site_id():
