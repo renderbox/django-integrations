@@ -1,6 +1,6 @@
-from rest_framework import generics
+# from rest_framework import generics
 
-# from integrations.models import SampleModel 
+# from integrations.models import SampleModel
 # from integrations.api.serializers import SampleModelSerializer
 
 
