@@ -1,38 +1,49 @@
-![Django Integrations CI](https://github.com/renderbox/django-integrations/workflows/Django%20Integrations%20CI/badge.svg)
+[![Python Tests](https://github.com/renderbox/django-integrations/actions/workflows/python-test.yml/badge.svg)](https://github.com/renderbox/django-integrations/actions/workflows/python-test.yml)
 
-![Django Integrations CI](https://github.com/renderbox/django-integrations/workflows/Django%20Integrations%20Develop/badge.svg)
+[![Publish Python 🐍 distribution 📦 to PyPI](https://github.com/renderbox/django-integrations/actions/workflows/python-publish.yml/badge.svg)](https://github.com/renderbox/django-integrations/actions/workflows/python-publish.yml)
 
 # Django Integrations
 
 Tools for creating and managing multi-site integrations like API Keys and Tokens
 
 ## Prerequisites
-This pakcage makes use of Encrypted Fields that come form the [django-fernet-fields](https://github.com/orcasgit/django-fernet-fields) packages. Make sure to checkout their documentation for any questions related to Field Encryption. 
+
+This pakcage makes use of Encrypted Fields that come form the [django-fernet-fields](https://github.com/orcasgit/django-fernet-fields) packages. Make sure to checkout their documentation for any questions related to Field Encryption.
 
 This package makes use of JSON fields so you'll need Download and install Postgresql. This will change with Django 3.1+ and the universal JSON field.
 
 ## Installation
+
 ```
 > pip install django-integration
 ```
 
 ## For Developers
+
 Make sure you run the following command to ensure you have all the requirements needed to us the develop example project:
+
 ```
 pip install -e .[dev]
 ```
+
 Then run the migration command inside the develop folder
+
 ```
 ./manage.py migrate
 ```
+
 finally create a super user:
+
 ```
 ./manage.py createsuperuser
 ```
+
 ### Example
+
 In the develop django project you will find a core application that has three Forms each with its view to show case how to use the Credential Model in the integration package.
 
 For example you have a ZoomForm to present the user with the fields Zoom gives to use their API with you project. The ZoomForm is responsible for presenting and validating the fields and linking it to the credentials Model just like a normal ModelForm would.
+
 ```
 class ZoomForm(forms.ModelForm):
 
@@ -43,7 +54,7 @@ class ZoomForm(forms.ModelForm):
             'public_key': "Zoom Key",
             'private_key': "Zoom Secret"
         }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['public_key'].required = True
