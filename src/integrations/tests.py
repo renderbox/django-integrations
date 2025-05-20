@@ -1,13 +1,15 @@
-import sys
-import os
-import django
 import base64
+import os
+import sys
 import unittest
-from django.db import models, connection
-from django.test import TestCase, override_settings
+
+import django
 from django.contrib.sites.models import Site
-from integrations.models import Credential
+from django.db import connection, models
+from django.test import TestCase, override_settings
+
 from integrations.encrypted_fields import EncryptedTextField
+from integrations.models import Credential
 
 
 def setup_django():
