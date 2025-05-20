@@ -46,6 +46,11 @@ test = [
     "coverage",
     "pytest",
     "pytest-django",
+    'dj-database-url',
+    'django-crispy-forms',
+    'django-allauth',
+    'django-extensions',
+    'psycopg2-binary',
 ]
 
 [project.urls]
