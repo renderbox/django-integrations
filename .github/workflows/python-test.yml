@@ -46,19 +46,32 @@ jobs:
             django-version: "3.1" # Django 3.1 does not support Python 3.11+
           - python-version: "3.12"
             django-version: "3.1" # Django 3.1 does not support Python 3.12+
-          # - python-version: "3.13"
-          #   django-version: "3.1" # Django 3.1 does not support Python 3.13
+          - python-version: "3.13"
+            django-version: "3.1" # Django 3.1 does not support Python 3.13
           - python-version: "3.12"
             django-version: "3.2" # Django 3.2 does not support Python 3.12+
-          # - python-version: "3.13"
-          #   django-version: "3.2" # Django 3.2 does not support Python 3.13
-          # - python-version: "3.13"
-          #   django-version: "4.2" # Django 4.2 does not support Python 3.13
+          - python-version: "3.13"
+            django-version: "3.2" # Django 3.2 does not support Python 3.13
+          - python-version: "3.13"
+            django-version: "4.2" # Django 4.2 does not support Python 3.13
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Set up PostgreSQL
+        uses: ankane/setup-postgres@v1
+        with:
+          postgres-version: 15
+          database: test_db
+          username: runner
+
+      - name: Set Postgres Password
+        run: |
+          psql -U runner -d test_db -c "ALTER USER runner WITH PASSWORD 'postgres';"
+        env:
+          PGPASSWORD: ""
 
       - name: Install Dependencies
         run: |
@@ -67,7 +80,8 @@ jobs:
           python -m pip install "Django==${{ matrix.django-version }}"
 
       - name: Test with Pytest
-        run: |
-          python -m pytest src/integrations develop
         env:
           DJANGO_DEBUG: 1
+          DATABASE_URL: "postgres://runner:postgres@localhost:5432/test_db"
+        run: |
+          python -m pytest src/integrations develop
