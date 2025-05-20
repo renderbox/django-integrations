@@ -43,17 +43,9 @@ dev = [
     'psycopg2-binary',
 ]
 test = [
-    "black",
-    "flake8",
-    "flake8-black",
-    "mypy",
-    "bandit",
-    "isort",
     "coverage",
     "pytest",
     "pytest-django",
-    "dj-database-url",
-    'psycopg2-binary',
 ]
 
 [project.urls]
