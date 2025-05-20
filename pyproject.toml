@@ -52,6 +52,8 @@ test = [
     "coverage",
     "pytest",
     "pytest-django",
+    "dj-database-url",
+    'psycopg2-binary',
 ]
 
 [project.urls]
@@ -65,3 +67,5 @@ where = ["src"]
 packages = [
     { include = "integrations", from = "src" },
 ]
+
+
