@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "django-integrations"
+version = "0.2.0"
+authors = [
+  { name="Grant Viklund", email="renderbox@gmail.com" },
+  { name="Roberto Himmelbauer" },
+]
+description = "Tools for creating and managing multi-site integrations like API Keys and Tokens."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+keywords = ["django", "app"]
+dependencies = [
+    "Django>=4.0,<6.0",
+    "cryptography (>=45.0.2,<46.0.0)",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "flake8",
+    "flake8-black",
+    "mypy",
+    "bandit",
+    "isort",
+    'dj-database-url',
+    'django-crispy-forms',
+    'django-allauth',
+    'django-extensions',
+    'psycopg2-binary',
+]
+test = [
+    "coverage",
+    "pytest",
+    "pytest-django",
+    'dj-database-url',
+    'django-crispy-forms',
+    'django-allauth',
+    'django-extensions',
+    'psycopg2-binary',
+]
+
+[project.urls]
+"Homepage" = "https://github.com/renderbox/django-integrations"
+"Bug Tracker" = "https://github.com/renderbox/django-integrations/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.poetry]
+packages = [
+    { include = "integrations", from = "src" },
+]
+
+
