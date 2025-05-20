@@ -63,5 +63,5 @@ where = ["src"]
 
 [tool.poetry]
 packages = [
-    { include = "siteconfigs", from = "src" },
+    { include = "integrations", from = "src" },
 ]
