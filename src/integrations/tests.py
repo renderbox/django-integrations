@@ -22,7 +22,7 @@ setup_django()
 
 
 class DummyModel(models.Model):
-    secret = EncryptedTextField()
+    secret = EncryptedTextField(null=True, blank=True)
 
     class Meta:
         app_label = "integrations"
