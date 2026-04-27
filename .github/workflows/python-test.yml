@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install black isort flake8
@@ -24,7 +24,7 @@ jobs:
     needs: lint
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -e .[dev,test] # assumes extras_require for test deps
@@ -37,24 +37,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-        django-version: ["4.0", "4.1", "4.2", "5.0", "5.1"]
-        exclude:
+        include:
           - python-version: "3.10"
-            django-version: "5.0" # Django 5.0 requires Python >=3.11
-          - python-version: "3.10"
-            django-version: "5.1" # Django 5.1 requires Python >=3.11
+            django-version: "5.2"
+          - python-version: "3.11"
+            django-version: "5.2"
+          - python-version: "3.12"
+            django-version: "5.2"
           - python-version: "3.13"
-            django-version: "4.0" # Django 4.0 does not support Python 3.13
+            django-version: "5.2"
+          - python-version: "3.12"
+            django-version: "6.0"
           - python-version: "3.13"
-            django-version: "4.1" # Django 4.1 does not support Python 3.13
-          - python-version: "3.13"
-            django-version: "4.2" # Django 4.2 does not support Python 3.13
-          - python-version: "3.13"
-            django-version: "5.0" # Django 5.0 does not support Python 3.13
+            django-version: "6.0"
+          - python-version: "3.14"
+            django-version: "6.0"
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -75,11 +75,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[test]"
-          python -m pip install "Django==${{ matrix.django-version }}"
+          python -m pip install "Django~=${{ matrix.django-version }}.0"
 
       - name: Test with Pytest
         env:
           DJANGO_DEBUG: 1
           DATABASE_URL: "postgres://runner:postgres@localhost:5432/test_db"
         run: |
-          python -m pytest src/integrations develop
+          PYTHONWARNINGS=always python -m pytest src/integrations develop
