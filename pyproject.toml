@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-integrations"
-version = "0.4.0"
+version = "0.5.0"
 authors = [
   { name="Grant Viklund", email="renderbox@gmail.com" },
   { name="Roberto Himmelbauer" },
@@ -14,15 +14,19 @@ readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
     "Intended Audience :: Developers",
+    "Framework :: Django",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 keywords = ["django", "app"]
 dependencies = [
-    "Django>=4.0,<6.0",
+    "Django>=5.2,<6.1",
     "cryptography (>=45.0.2,<46.0.0)",
 ]
 
@@ -43,9 +47,9 @@ dev = [
 test = [
     "coverage",
     "pytest",
-    "pytest-django",
+    "pytest-django>=4.12",
     'dj-database-url',
-    'django-crispy-forms',
+    'django-crispy-forms>=2.4',
     'django-allauth',
     'django-extensions',
     'psycopg2-binary',
@@ -62,5 +66,4 @@ where = ["src"]
 packages = [
     { include = "integrations", from = "src" },
 ]
-
 
