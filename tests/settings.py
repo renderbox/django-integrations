@@ -10,10 +10,19 @@ DEBUG = False
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
+    "django.contrib.sessions",
     "django.contrib.sites",
     "integrations",
     "tests.testapp",
 ]
+
+MIDDLEWARE = [
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+]
+
+ROOT_URLCONF = "tests.urls"
 
 DATABASES = {
     "default": dj_database_url.config(default="sqlite://:memory:"),

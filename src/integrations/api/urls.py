@@ -1,7 +1,26 @@
-# from django.urls import path
+from django.urls import path
 
-# from integrations.api import views
+from integrations.api import views
 
-# urlpatterns = [
-#     # path('samplemodel/list/', views.SampleModelListAPIView.as_view(), name='sample-model-list'),
-# ]
+urlpatterns = [
+    path(
+        "v1/integrations/",
+        views.IntegrationListView.as_view(),
+        name="integration-list",
+    ),
+    path(
+        "v1/integrations/<slug:slug>/",
+        views.IntegrationDetailView.as_view(),
+        name="integration-detail",
+    ),
+    path(
+        "v1/integrations/<slug:slug>/configuration/",
+        views.ConfigurationView.as_view(),
+        name="integration-configuration",
+    ),
+    path(
+        "v1/openapi.json",
+        views.OpenAPISchemaView.as_view(),
+        name="openapi-schema",
+    ),
+]
