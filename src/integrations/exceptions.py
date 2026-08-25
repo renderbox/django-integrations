@@ -38,3 +38,7 @@ class IntegrationNotRegisteredError(IntegrationError):
     def __init__(self, slug: str):
         self.slug = slug
         super().__init__(f"No integration is registered for slug {slug!r}.")
+
+
+class DecryptionError(IntegrationError):
+    """None of the configured ENCRYPTED_FIELD_KEYS could decrypt a value."""
