@@ -1,9 +1,9 @@
 import json
 
-from cryptography.fernet import Fernet, InvalidToken
-from django.conf import settings
+from cryptography.fernet import InvalidToken
 from django.db import models
 
+from integrations import conf
 from integrations.exceptions import DecryptionError
 
 
@@ -26,19 +26,12 @@ class EncryptedJSONField(models.TextField):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("default", dict)
         super().__init__(*args, **kwargs)
-        keys = getattr(settings, "ENCRYPTED_FIELD_KEYS", None)
-        if not keys:
-            raise ValueError(
-                "ENCRYPTED_FIELD_KEYS must be set in Django settings as a list of base64 keys."
-            )
-        self.fernets = [Fernet(k.encode() if isinstance(k, str) else k) for k in keys]
-        self.primary_fernet = self.fernets[0]
 
     def get_prep_value(self, value):
         if value is None:
             return value
         json_str = json.dumps(value)
-        encrypted = self.primary_fernet.encrypt(json_str.encode())
+        encrypted = conf.get_multi_fernet().encrypt(json_str.encode())
         return encrypted.decode()
 
     def from_db_value(self, value, expression, connection):
@@ -52,12 +45,10 @@ class EncryptedJSONField(models.TextField):
         return self._decrypt(value)
 
     def _decrypt(self, value):
-        for fernet in self.fernets:
-            try:
-                decrypted = fernet.decrypt(value.encode())
-            except (InvalidToken, AttributeError):
-                continue
-            return json.loads(decrypted.decode())
-        raise DecryptionError(
-            "Unable to decrypt value with any configured ENCRYPTED_FIELD_KEYS."
-        )
+        try:
+            decrypted = conf.get_multi_fernet().decrypt(value.encode())
+        except InvalidToken:
+            raise DecryptionError(
+                "Unable to decrypt value with any configured ENCRYPTED_FIELD_KEYS."
+            ) from None
+        return json.loads(decrypted.decode())

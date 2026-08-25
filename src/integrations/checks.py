@@ -1,8 +1,9 @@
 import re
 
 from django.core import checks
+from django.core.exceptions import ImproperlyConfigured
 
-from integrations import registry
+from integrations import conf, registry
 
 SLUG_RE = re.compile(r"^[a-z0-9_-]+$")
 
@@ -94,3 +95,17 @@ def check_field_definitions(app_configs, **kwargs):
                 )
             seen_names.add(name)
     return errors
+
+
+@checks.register("integrations")
+def check_encryption_configuration(app_configs, **kwargs):
+    """
+    Unlike the checks above, this doesn't loop over registry.all() - this
+    package's own Credential model always has encrypted fields the moment
+    `integrations` is installed, regardless of what the host app registers.
+    """
+    try:
+        conf.get_multi_fernet()
+    except ImproperlyConfigured as exc:
+        return [checks.Error(str(exc), id="integrations.E006")]
+    return []

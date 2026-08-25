@@ -97,3 +97,15 @@ class CredentialV2FieldsTest(TestCase):
     def test_site_related_name_is_credentials(self):
         cred = Credential.objects.create(site=self.site, integration="zoom")
         self.assertIn(cred, self.site.credentials.all())
+
+    def test_str_and_repr_never_expose_secret_values(self):
+        cred = Credential.objects.create(
+            site=self.site,
+            integration="zoom",
+            private_key="super-secret-private-key",
+            secrets={"api_key": "super-secret-api-key"},
+        )
+        self.assertNotIn("super-secret-private-key", str(cred))
+        self.assertNotIn("super-secret-private-key", repr(cred))
+        self.assertNotIn("super-secret-api-key", str(cred))
+        self.assertNotIn("super-secret-api-key", repr(cred))

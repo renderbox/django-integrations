@@ -1,3 +1,4 @@
+from integrations.encrypted_fields import EncryptedTextField
 from integrations.fields.base import (
     CLEAR,
     UNSET,
@@ -17,6 +18,7 @@ __all__ = [
     "BooleanField",
     "ChoiceField",
     "EncryptedJSONField",
+    "EncryptedTextField",
     "IntegerField",
     "IntegrationField",
     "SecretField",

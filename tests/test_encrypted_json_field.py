@@ -1,11 +1,17 @@
+import base64
 import json
+import os
 
 from cryptography.fernet import Fernet
 from django.db import connection
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from integrations.exceptions import DecryptionError
 from tests.testapp.models import DummyJSONModel
+
+
+def _fresh_key():
+    return base64.urlsafe_b64encode(os.urandom(32)).decode()
 
 
 class EncryptedJSONFieldTest(TestCase):
@@ -51,3 +57,13 @@ class EncryptedJSONFieldTest(TestCase):
 
         with self.assertRaises(DecryptionError):
             DummyJSONModel.objects.get(pk=obj.pk)
+
+    def test_multi_key_rotation(self):
+        key_a = _fresh_key()
+        with override_settings(ENCRYPTED_FIELD_KEYS=[key_a]):
+            obj = DummyJSONModel.objects.create(data={"account_id": "acct-1"})
+
+        key_b = _fresh_key()
+        with override_settings(ENCRYPTED_FIELD_KEYS=[key_b, key_a]):
+            obj.refresh_from_db()
+            self.assertEqual(obj.data, {"account_id": "acct-1"})

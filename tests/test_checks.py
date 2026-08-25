@@ -1,3 +1,5 @@
+from django.test import override_settings
+
 from integrations import Integration, checks, registry
 from integrations.fields import TextField
 
@@ -105,3 +107,20 @@ class TestCheckFieldDefinitions:
         registry._registry["dup-field"] = DuplicateFieldIntegration
 
         assert "integrations.E004" in _error_ids(checks.check_field_definitions(None))
+
+
+class TestCheckEncryptionConfiguration:
+    def test_no_errors_for_valid_keys(self):
+        # tests.settings already provides a valid ENCRYPTED_FIELD_KEYS by
+        # default; just confirm the happy path returns no errors.
+        assert checks.check_encryption_configuration(None) == []
+
+    @override_settings(ENCRYPTED_FIELD_KEYS=[])
+    def test_flags_missing_keys(self):
+        errors = checks.check_encryption_configuration(None)
+        assert "integrations.E006" in _error_ids(errors)
+
+    @override_settings(ENCRYPTED_FIELD_KEYS=["not-a-valid-fernet-key"])
+    def test_flags_malformed_keys(self):
+        errors = checks.check_encryption_configuration(None)
+        assert "integrations.E006" in _error_ids(errors)
