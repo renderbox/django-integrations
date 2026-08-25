@@ -83,6 +83,128 @@ unresolved decisions eliminated before model migration work begins.
 
 ------------------------------------------------------------------------
 
+## Phase 0 Baseline & Decisions Record
+
+### Current public surface (inventory)
+
+-   `src/integrations/__init__.py` is empty. `admin.py` registers a
+    minimal `CredentialAdmin`. `views.py` exposes one placeholder
+    `TemplateView`. `urls.py` exposes one placeholder route. There is no
+    real public Python API to preserve.
+-   `src/integrations/api/` (`views.py`, `urls.py`, `seriealizers.py` ---
+    note the existing filename typo) is entirely commented-out DRF
+    scaffolding, has no `__init__.py`, and has never been functional.
+    Nothing to migrate.
+-   `src/integrations/models.py` defines `Credential(name, site,
+    client_id, client_url, public_key, private_key, attrs)`, matching
+    this plan's migration mapping exactly. `site` uses
+    `related_name="site"`, which is confusing and is already flagged for
+    rename in Phase 4.
+-   `src/integrations/encrypted_fields.py`: `EncryptedTextField
+    .from_db_value` and `.to_python` **silently return raw ciphertext**
+    when no configured key can decrypt it. This directly contradicts
+    Phase 5's requirement to raise explicitly and is a real v1 defect to
+    fix in Phase 5, not preserve.
+-   `src/integrations/migrations/0001_initial.py` is the only migration
+    and matches current `models.py` exactly. No migration history to
+    reconcile.
+-   `src/integrations/templates/integrations/` contains unmodified
+    Bootstrap starter-template boilerplate (`base.html`, `index.html`),
+    not real UI. Nothing worth preserving into Phase 9.
+-   `develop/` is a demo/CI harness, not a source of reusable "example
+    integrations." `develop/core/forms.py` shows three provider forms
+    (`ZoomForm`, `VoucheryForm`, `AuthorizeNetForm`) that distinguish
+    providers only by which generic `Credential` columns they happen to
+    reuse --- the clearest concrete illustration of the problem v2
+    solves. `develop/core/tests.py` is empty.
+-   Tooling: `pytest.ini` hardcodes `DJANGO_SETTINGS_MODULE =
+    develop.settings`; `src/integrations/tests.py` does a `sys.path`
+    hack plus `django.setup()` at import time into that same demo
+    settings module, and uses `connection.schema_editor()` /
+    `connection._constraints_disabled` (a private internal) to create an
+    ad hoc `DummyModel` for encryption tests.
+-   `pyproject.toml` has a dead `[tool.poetry]` table (the real build
+    backend is setuptools) and there is a genuine `poetry.lock` at the
+    repo root --- both real Poetry leftovers per Phase 1. No
+    `[tool.black]`, `[tool.isort]`, `[tool.mypy]`, `[tool.bandit]`, or
+    `[tool.coverage.*]` sections exist anywhere; `flake8` config lives in
+    `tox.ini`, which otherwise has no real tox matrix. `mypy`/`bandit`
+    are already listed in the `dev` extra but are never run by CI.
+-   `.github/workflows/python-test.yml` runs `black`/`isort`/`flake8`
+    (lint job, `src` only), a `makemigrations --check` job against
+    `develop`, and a Python x Django test matrix (3.10--3.14 x Django
+    5.2/6.0, correctly excluding Django 6.0 from Python 3.10/3.11 since
+    Django 6.0 requires Python >=3.12) --- no mypy, bandit, or coverage
+    step anywhere yet.
+-   `.bumpversion.cfg` (`0.4.0`) is out of sync with `pyproject.toml`
+    (`0.5.0`) --- the automated `bumpversion.yml` workflow would bump
+    from the wrong base on its next run. Fixed in Phase 1.
+-   `README.md` claims a dependency on `django-fernet-fields` that
+    doesn't exist (the field is actually self-contained) and never
+    documents the required `ENCRYPTED_FIELD_KEYS` setting. To be
+    corrected in Phase 12.
+
+### Baseline test run
+
+Run 2026-08-25 against a clean venv (`pip install -e ".[test]"`, Python
+3.14.6, Django 6.0.8 resolved from `Django>=5.2,<6.1`), using the
+existing `pytest.ini` / `develop.settings` configuration, before any
+Phase 1 tooling changes:
+
+``` text
+collected 5 items
+src/integrations/tests.py ..sss                                  [100%]
+2 passed, 3 skipped in 0.17s
+```
+
+The 3 skips are the Postgres-only `EncryptedTextFieldTest` schema-editor
+cases (skipped under sqlite, the default local DB). This is the known-good
+reference point Phase 1's test-suite refactor must continue to satisfy
+(2 passed / 3 skipped locally on sqlite; all 5 should pass under Postgres,
+as CI already provides).
+
+### Decisions
+
+-   **Supported versions**: Python 3.10--3.14 with Django 5.2 (all
+    listed Python versions); Python 3.12--3.14 with Django 6.0 (Django
+    6.0 itself requires Python >=3.12). Carried forward unchanged into
+    v2; `pyproject.toml` classifiers already reflect this correctly, it
+    was just not stated explicitly anywhere.
+-   **v2 Python API breaking change policy**: v2 is a fully breaking
+    rewrite with no compatibility aliases. Justified because v1's public
+    Python surface is empty (`__init__.py` has no exports) and `api/`
+    was never functional --- there is nothing for an alias to preserve.
+-   **API URL/versioning convention**: the package ships
+    `integrations/api/urls.py` for the host application to `include()`
+    at whatever mount point it chooses. The API contract itself is
+    versioned independently of the package's own version number, e.g.
+    `.../integrations/v1/...`, so API and package versioning don't get
+    conflated as the package's version number advances.
+-   **API implementation approach**: Django-native JSON views for the
+    core package, with an optional `contrib/drf/` adapter (per the
+    Package Structure in `AGENTS.md`) rather than a hard DRF dependency.
+-   **Scope-resolver override mechanism**: a Django-convention setting,
+    `INTEGRATIONS_SCOPE_RESOLVER = "dotted.path.callable"`, defaulting to
+    the built-in Django Sites resolver. Documented now as the Phase 7
+    hook contract so later phases build against a settled name.
+-   **Default tenant scope**: Django Sites, as already stated in
+    `AGENTS.md`.
+-   **Default permission policy**: Django's built-in permission system,
+    with an explicit override hook for applications that need custom
+    policy, as already stated in `AGENTS.md`.
+-   **Upgrade path from v1**: the `client_id -> config["client_id"]`,
+    `client_url -> config["client_url"]`, `public_key ->
+    secrets["public_key"]`, `private_key -> secrets["private_key"]`
+    mapping already defined in Phase 4 applies as-is (confirmed against
+    the real `Credential` model above). `attrs` still requires manual
+    classification per application, since sensitivity cannot be inferred
+    automatically. Two additional v1 defects are explicitly *not*
+    carried forward: the ciphertext-fallback bug in
+    `EncryptedTextField` (fixed in Phase 5) and the `related_name="site"`
+    naming (fixed in Phase 4).
+
+------------------------------------------------------------------------
+
 ## Phase 1 --- Tooling and Test Foundation
 
 ### Goals
@@ -554,6 +676,31 @@ testing and expose the action consistently.
 ### Goals
 
 Make the intended v2 architecture obvious to package consumers.
+
+### Documentation tooling
+
+Replace the existing `docs/` Sphinx/RST setup with plain Markdown.
+
+The current `docs/conf.py` is already broken (invalid Python syntax
+referencing a nonexistent `Django Integrations.__version__` module) and
+its extensions (`recommonmark`, `sphinx_rtd_theme`) are not declared as
+project dependencies anywhere --- it has not been a working doc build
+for some time and is not worth repairing as-is.
+
+Work:
+
+-   Remove `docs/conf.py`, `docs/Makefile`, `docs/make.bat`, and the
+    `docs/_static`/`docs/_templates` Sphinx scaffolding.
+-   Convert `docs/modules/*.rst` (`about.rst`, `installation.rst`,
+    `models.rst`, `views.rst`) to Markdown, rewritten for v2 concepts
+    rather than the v1 `Credential`/provider-form pattern they currently
+    describe.
+-   Land the converted docs as plain `.md` files under `docs/` (no
+    Sphinx build step, no generated site tooling) unless a concrete
+    need for a rendered doc site shows up later.
+-   Fold in the README corrections already identified in the Phase 0
+    baseline record: drop the stale `django-fernet-fields` dependency
+    claim, document the required `ENCRYPTED_FIELD_KEYS` setting.
 
 ### Documentation
 
