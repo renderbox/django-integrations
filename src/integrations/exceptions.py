@@ -22,3 +22,19 @@ class IntegrationValidationError(IntegrationError):
     def __init__(self, errors: dict[str, list[str]]):
         self.errors = errors
         super().__init__(str(errors))
+
+
+class DuplicateIntegrationError(IntegrationError):
+    """A different class is already registered for this slug."""
+
+    def __init__(self, slug: str):
+        self.slug = slug
+        super().__init__(f"An integration is already registered for slug {slug!r}.")
+
+
+class IntegrationNotRegisteredError(IntegrationError):
+    """No integration is registered for this slug."""
+
+    def __init__(self, slug: str):
+        self.slug = slug
+        super().__init__(f"No integration is registered for slug {slug!r}.")
