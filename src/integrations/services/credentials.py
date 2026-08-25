@@ -1,21 +1,21 @@
 from typing import Any, cast
 
-from django.contrib.sites.models import Site
 from django.db import transaction
 
 from integrations.base import Integration, IntegrationConfig
 from integrations.exceptions import IntegrationValidationError
 from integrations.models import Credential
 from integrations.registry import get as get_integration
+from integrations.scopes import IntegrationScope
 
 
-def get_credential(site: Site, slug: str) -> Credential | None:
+def get_credential(scope: IntegrationScope, slug: str) -> Credential | None:
     """Raw lookup, no validation. None if nothing is stored yet."""
     get_integration(slug)  # raises IntegrationNotRegisteredError if unknown
-    return Credential.objects.filter(site=site, integration=slug).first()
+    return Credential.objects.filter(site=scope.site, integration=slug).first()
 
 
-def get_config(site: Site, slug: str) -> IntegrationConfig:
+def get_config(scope: IntegrationScope, slug: str) -> IntegrationConfig:
     """
     Always returns an IntegrationConfig, even when nothing is stored yet
     (empty config/secrets) - callers don't need a None-check just to ask
@@ -23,7 +23,7 @@ def get_config(site: Site, slug: str) -> IntegrationConfig:
     view for anything reaching an HTTP response or template.
     """
     integration_cls = get_integration(slug)
-    credential = Credential.objects.filter(site=site, integration=slug).first()
+    credential = Credential.objects.filter(site=scope.site, integration=slug).first()
     if credential is None:
         return IntegrationConfig(integration=integration_cls, config={}, secrets={})
     return IntegrationConfig(
@@ -36,9 +36,9 @@ def get_config(site: Site, slug: str) -> IntegrationConfig:
     )
 
 
-def is_configured(site: Site, slug: str) -> bool:
+def is_configured(scope: IntegrationScope, slug: str) -> bool:
     get_integration(slug)
-    return Credential.objects.filter(site=site, integration=slug).exists()
+    return Credential.objects.filter(site=scope.site, integration=slug).exists()
 
 
 def _merge_with_stored(
@@ -67,7 +67,7 @@ def _merge_with_stored(
     return merged
 
 
-def save_config(site: Site, slug: str, data: dict[str, Any]) -> Credential:
+def save_config(scope: IntegrationScope, slug: str, data: dict[str, Any]) -> Credential:
     """
     Validates `data` (raising IntegrationValidationError on failure) and
     persists it:
@@ -85,7 +85,7 @@ def save_config(site: Site, slug: str, data: dict[str, Any]) -> Credential:
     with transaction.atomic():
         credential = (
             Credential.objects.select_for_update()
-            .filter(site=site, integration=slug)
+            .filter(site=scope.site, integration=slug)
             .first()
         )
 
@@ -109,7 +109,7 @@ def save_config(site: Site, slug: str, data: dict[str, Any]) -> Credential:
             )
 
         if credential is None:
-            credential = Credential(site=site, integration=slug)
+            credential = Credential(site=scope.site, integration=slug)
 
         credential.config = result.config
         credential.secrets = result.secrets
@@ -118,11 +118,13 @@ def save_config(site: Site, slug: str, data: dict[str, Any]) -> Credential:
     return credential
 
 
-def delete_config(site: Site, slug: str) -> bool:
+def delete_config(scope: IntegrationScope, slug: str) -> bool:
     """Deletes the Credential row if present. Idempotent: returns whether
     anything was actually deleted."""
     get_integration(slug)
-    deleted_count, _ = Credential.objects.filter(site=site, integration=slug).delete()
+    deleted_count, _ = Credential.objects.filter(
+        site=scope.site, integration=slug
+    ).delete()
     return deleted_count > 0
 
 

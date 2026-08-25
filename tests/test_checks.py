@@ -124,3 +124,23 @@ class TestCheckEncryptionConfiguration:
     def test_flags_malformed_keys(self):
         errors = checks.check_encryption_configuration(None)
         assert "integrations.E006" in _error_ids(errors)
+
+
+class TestCheckScopeResolver:
+    def test_no_errors_for_default_resolver(self):
+        assert checks.check_scope_resolver(None) == []
+
+    @override_settings(INTEGRATIONS_SCOPE_RESOLVER="not.a.real.module.path")
+    def test_flags_bad_dotted_path(self):
+        errors = checks.check_scope_resolver(None)
+        assert "integrations.E007" in _error_ids(errors)
+
+
+class TestCheckPermissionPolicy:
+    def test_no_errors_for_default_policy(self):
+        assert checks.check_permission_policy(None) == []
+
+    @override_settings(INTEGRATIONS_PERMISSION_POLICY="not.a.real.module.Path")
+    def test_flags_bad_dotted_path(self):
+        errors = checks.check_permission_policy(None)
+        assert "integrations.E008" in _error_ids(errors)

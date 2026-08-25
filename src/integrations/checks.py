@@ -109,3 +109,21 @@ def check_encryption_configuration(app_configs, **kwargs):
     except ImproperlyConfigured as exc:
         return [checks.Error(str(exc), id="integrations.E006")]
     return []
+
+
+@checks.register("integrations")
+def check_scope_resolver(app_configs, **kwargs):
+    try:
+        conf.get_scope_resolver()
+    except ImproperlyConfigured as exc:
+        return [checks.Error(str(exc), id="integrations.E007")]
+    return []
+
+
+@checks.register("integrations")
+def check_permission_policy(app_configs, **kwargs):
+    try:
+        conf.get_permission_policy()
+    except ImproperlyConfigured as exc:
+        return [checks.Error(str(exc), id="integrations.E008")]
+    return []

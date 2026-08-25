@@ -48,3 +48,37 @@ class TestGetMultiFernet:
             assert token_a != token_b
             # ...but old ciphertext still decrypts via the retained key.
             assert conf.get_multi_fernet().decrypt(token_a) == b"data"
+
+
+class TestGetScopeResolver:
+    def test_default_resolver(self):
+        resolver = conf.get_scope_resolver()
+        from integrations.scopes import default_scope_resolver
+
+        assert resolver is default_scope_resolver
+
+    @override_settings(INTEGRATIONS_SCOPE_RESOLVER="not.a.real.module.path")
+    def test_bad_dotted_path_raises_improperly_configured(self):
+        with pytest.raises(ImproperlyConfigured):
+            conf.get_scope_resolver()
+
+    @override_settings(
+        INTEGRATIONS_SCOPE_RESOLVER="integrations.scopes.default_scope_resolver"
+    )
+    def test_custom_valid_path_resolves(self):
+        from integrations.scopes import default_scope_resolver
+
+        assert conf.get_scope_resolver() is default_scope_resolver
+
+
+class TestGetPermissionPolicy:
+    def test_default_policy(self):
+        from integrations.permissions import IntegrationPermissionPolicy
+
+        policy = conf.get_permission_policy()
+        assert isinstance(policy, IntegrationPermissionPolicy)
+
+    @override_settings(INTEGRATIONS_PERMISSION_POLICY="not.a.real.module.Path")
+    def test_bad_dotted_path_raises_improperly_configured(self):
+        with pytest.raises(ImproperlyConfigured):
+            conf.get_permission_policy()
