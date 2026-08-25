@@ -1,0 +1,24 @@
+class IntegrationError(Exception):
+    """Base class for all django-integrations domain errors."""
+
+
+class FieldValidationError(IntegrationError):
+    """A single field failed validation."""
+
+    def __init__(self, field_name: str, message: str):
+        self.field_name = field_name
+        self.message = message
+        super().__init__(f"{field_name}: {message}")
+
+
+class IntegrationValidationError(IntegrationError):
+    """
+    One or more fields failed validation, or cross-field validation failed.
+
+    `errors` maps field name -> list of messages. Non-field-specific errors
+    (raised by Integration.validate()) are collected under "__all__".
+    """
+
+    def __init__(self, errors: dict[str, list[str]]):
+        self.errors = errors
+        super().__init__(str(errors))
