@@ -24,6 +24,13 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "tests.urls"
 
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "APP_DIRS": True,
+    },
+]
+
 DATABASES = {
     "default": dj_database_url.config(default="sqlite://:memory:"),
 }

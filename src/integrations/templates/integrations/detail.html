@@ -1,0 +1,55 @@
+{% extends "integrations/base.html" %}
+
+{% block title %}{{ integration.name }}{% endblock %}
+
+{% block content %}
+  <p><a href="{% url 'integration-list' %}">&larr; Integrations</a></p>
+  <h1>{{ integration.name }}</h1>
+  {% if integration.description %}<p>{{ integration.description }}</p>{% endif %}
+
+  {% if is_configured %}
+    <span class="badge configured">Configured</span>
+  {% else %}
+    <span class="badge unconfigured">Not configured</span>
+  {% endif %}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for field in fields %}
+        <tr>
+          <td>{{ field.label }}</td>
+          <td>
+            {% if field.is_secret %}
+              {% if field.configured %}
+                <span class="badge configured">Configured</span>
+              {% else %}
+                <span class="badge unconfigured">Not set</span>
+              {% endif %}
+            {% else %}
+              {{ field.value|default:"—" }}
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>
+    {% if can_configure %}
+      <a href="{% url 'integration-configure' slug=integration.slug %}">
+        <button type="button">Configure</button>
+      </a>
+    {% endif %}
+    {% if can_delete and is_configured %}
+      <a href="{% url 'integration-delete' slug=integration.slug %}">
+        <button type="button">Delete</button>
+      </a>
+    {% endif %}
+  </p>
+{% endblock %}

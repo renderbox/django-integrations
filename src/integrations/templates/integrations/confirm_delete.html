@@ -1,0 +1,13 @@
+{% extends "integrations/base.html" %}
+
+{% block title %}Remove {{ integration.name }}{% endblock %}
+
+{% block content %}
+  <p><a href="{% url 'integration-detail' slug=integration.slug %}">&larr; {{ integration.name }}</a></p>
+  <h1>Remove {{ integration.name }} configuration?</h1>
+  <p>This removes the stored configuration and secrets for {{ integration.name }}. This cannot be undone.</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="submit" value="Remove configuration">
+  </form>
+{% endblock %}
