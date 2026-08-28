@@ -7,6 +7,7 @@ from django.contrib.sites.models import Site
 from django.test import Client
 
 from integrations import Integration, registry
+from integrations.capabilities import TEST_CONNECTION, ConnectionTestResult
 from integrations.fields import SecretField, TextField
 
 
@@ -21,9 +22,33 @@ class WidgetIntegration(Integration):
     ]
 
 
+class TestableWidgetIntegration(Integration):
+    # Not a pytest test class - see the note in test_credential_service.py.
+    __test__ = False
+
+    slug = "testable-widget"
+    name = "Testable Widget"
+    capabilities = (TEST_CONNECTION,)
+    fields = [
+        TextField("account_id", required=True),
+        SecretField("api_key", required=True),
+    ]
+
+    @classmethod
+    def test_connection(cls, config):
+        if config.secrets.get("api_key") == "bad-key":
+            return ConnectionTestResult(success=False, message="Invalid API key.")
+        return ConnectionTestResult(success=True, message="Connected!")
+
+
 @pytest.fixture
 def registered(clean_registry):
     registry.register(WidgetIntegration)
+
+
+@pytest.fixture
+def registered_testable(clean_registry):
+    registry.register(TestableWidgetIntegration)
 
 
 @pytest.fixture
@@ -52,6 +77,10 @@ def plain_user(db):
 LIST_URL = "/api/v1/integrations/"
 DETAIL_URL = "/api/v1/integrations/widget/"
 CONFIG_URL = "/api/v1/integrations/widget/configuration/"
+TEST_URL = "/api/v1/integrations/widget/test/"
+TESTABLE_DETAIL_URL = "/api/v1/integrations/testable-widget/"
+TESTABLE_CONFIG_URL = "/api/v1/integrations/testable-widget/configuration/"
+TESTABLE_TEST_URL = "/api/v1/integrations/testable-widget/test/"
 MISSING_DETAIL_URL = "/api/v1/integrations/does-not-exist/"
 MISSING_CONFIG_URL = "/api/v1/integrations/does-not-exist/configuration/"
 
@@ -95,6 +124,15 @@ class TestIntegrationDetailView:
         assert response.status_code == 200
         body = json.loads(response.content)
         assert body["slug"] == "widget"
+        assert body["capabilities"] == []
+
+    def test_capabilities_reflect_what_the_integration_declares(
+        self, registered_testable, client, full_access_user
+    ):
+        client.force_login(full_access_user)
+        response = client.get(TESTABLE_DETAIL_URL)
+        body = json.loads(response.content)
+        assert body["capabilities"] == ["test_connection"]
 
     def test_unregistered_slug_is_404(self, registered, client, full_access_user):
         client.force_login(full_access_user)
@@ -235,6 +273,55 @@ class TestConfigurationDelete:
         client.force_login(plain_user)
         response = client.delete(CONFIG_URL)
         assert response.status_code == 403
+
+
+class TestTestConnectionView:
+    def test_unsupported_capability_is_404(self, registered, client, full_access_user):
+        client.force_login(full_access_user)
+        response = client.post(TEST_URL)
+        assert response.status_code == 404
+        assert response["Content-Type"] == "application/problem+json"
+
+    def test_success_result(self, registered_testable, client, full_access_user):
+        client.force_login(full_access_user)
+        client.put(
+            TESTABLE_CONFIG_URL,
+            data=json.dumps({"account_id": "acct-1", "api_key": "good-key"}),
+            content_type="application/json",
+        )
+        response = client.post(TESTABLE_TEST_URL)
+        assert response.status_code == 200
+        body = json.loads(response.content)
+        assert body == {"success": True, "message": "Connected!"}
+
+    def test_failure_result_is_still_200(
+        self, registered_testable, client, full_access_user
+    ):
+        client.force_login(full_access_user)
+        client.put(
+            TESTABLE_CONFIG_URL,
+            data=json.dumps({"account_id": "acct-1", "api_key": "bad-key"}),
+            content_type="application/json",
+        )
+        response = client.post(TESTABLE_TEST_URL)
+        assert response.status_code == 200
+        body = json.loads(response.content)
+        assert body == {"success": False, "message": "Invalid API key."}
+
+    def test_forbidden_without_test_connection_permission(
+        self, registered_testable, client, plain_user
+    ):
+        client.force_login(plain_user)
+        response = client.post(TESTABLE_TEST_URL)
+        assert response.status_code == 403
+
+    def test_requires_authentication(self, registered_testable, client):
+        assert client.post(TESTABLE_TEST_URL).status_code == 401
+
+    def test_get_not_allowed(self, registered_testable, client, full_access_user):
+        client.force_login(full_access_user)
+        response = client.get(TESTABLE_TEST_URL)
+        assert response.status_code == 405
 
 
 class TestMethodNotAllowed:

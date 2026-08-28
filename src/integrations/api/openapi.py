@@ -224,5 +224,46 @@ def get_openapi_schema() -> dict[str, Any]:
                     },
                 },
             },
+            "/integrations/{slug}/test/": {
+                "post": {
+                    "summary": (
+                        "Test connectivity/credentials against the real provider. "
+                        "Only available for integrations whose `capabilities` "
+                        '(see GET /integrations/{slug}/) include "test_connection".'
+                    ),
+                    "parameters": [
+                        {
+                            "name": "slug",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": (
+                                "OK - the request itself succeeded; `success` "
+                                "reflects the test's own outcome, not a transport "
+                                "error."
+                            ),
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "message": {"type": "string"},
+                                        },
+                                        "required": ["success", "message"],
+                                    }
+                                }
+                            },
+                        },
+                        "401": PROBLEM_RESPONSES["401"],
+                        "403": PROBLEM_RESPONSES["403"],
+                        "404": PROBLEM_RESPONSES["404"],
+                    },
+                }
+            },
         },
     }

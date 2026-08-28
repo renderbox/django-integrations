@@ -11,6 +11,7 @@ from integrations.api.errors import problem_response
 from integrations.api.openapi import get_openapi_schema
 from integrations.base import CLEAR
 from integrations.exceptions import (
+    CapabilityNotSupportedError,
     IntegrationNotRegisteredError,
     IntegrationValidationError,
 )
@@ -43,6 +44,10 @@ class BaseAPIView(View):
         except IntegrationNotRegisteredError as exc:
             return problem_response(
                 status=404, title="Integration not found", detail=str(exc)
+            )
+        except CapabilityNotSupportedError as exc:
+            return problem_response(
+                status=404, title="Capability not supported", detail=str(exc)
             )
         except IntegrationValidationError as exc:
             return problem_response(
@@ -130,6 +135,14 @@ class ConfigurationView(BaseAPIView):
         self._require_permission("can_delete", slug)
         services.delete_config(self.scope, slug)
         return HttpResponse(status=204)
+
+
+class TestConnectionView(BaseAPIView):
+    def post(self, request: HttpRequest, slug: str) -> HttpResponse:
+        registry.get(slug)
+        self._require_permission("can_test_connection", slug)
+        result = services.test_connection(self.scope, slug)
+        return JsonResponse({"success": result.success, "message": result.message})
 
 
 class OpenAPISchemaView(View):

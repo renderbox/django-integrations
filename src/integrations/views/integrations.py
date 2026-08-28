@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
@@ -8,7 +9,9 @@ from django.views import View
 
 from integrations import conf, registry
 from integrations.base import CLEAR, Integration, IntegrationConfig
+from integrations.capabilities import TEST_CONNECTION
 from integrations.exceptions import (
+    CapabilityNotSupportedError,
     IntegrationNotRegisteredError,
     IntegrationValidationError,
 )
@@ -93,13 +96,19 @@ class IntegrationDetailView(BaseHTMLView):
         integration_cls = self._get_integration(slug)
         self._require_permission("can_view", slug)
         config = services.get_config(self.scope, slug)
+        is_configured = services.is_configured(self.scope, slug)
         policy = conf.get_permission_policy()
         context = {
             "integration": integration_cls,
             "fields": _field_rows(config),
-            "is_configured": services.is_configured(self.scope, slug),
+            "is_configured": is_configured,
             "can_configure": policy.can_configure(request.user, self.scope, slug),
             "can_delete": policy.can_delete(request.user, self.scope, slug),
+            "can_test_connection": (
+                TEST_CONNECTION in integration_cls.capabilities
+                and is_configured
+                and policy.can_test_connection(request.user, self.scope, slug)
+            ),
         }
         return render(request, self.template_name, context)
 
@@ -175,9 +184,9 @@ class ConfigureView(BaseHTMLView):
         try:
             services.save_config(self.scope, slug, payload)
         except IntegrationValidationError as exc:
-            for field_name, messages in exc.errors.items():
+            for field_name, field_messages in exc.errors.items():
                 target = None if field_name == "__all__" else field_name
-                for message in messages:
+                for message in field_messages:
                     form.add_error(target, message)
             return render(
                 request,
@@ -205,3 +214,21 @@ class DeleteView(BaseHTMLView):
         self._require_permission("can_delete", slug)
         services.delete_config(self.scope, slug)
         return redirect("integration-list")
+
+
+class TestConnectionView(BaseHTMLView):
+    def post(
+        self, request: HttpRequest, slug: str, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
+        self._get_integration(slug)
+        self._require_permission("can_test_connection", slug)
+        try:
+            result = services.test_connection(self.scope, slug)
+        except CapabilityNotSupportedError:
+            raise Http404(f"{slug!r} does not support connection testing.")
+
+        if result.success:
+            messages.success(request, result.message or "Connection test succeeded.")
+        else:
+            messages.error(request, result.message or "Connection test failed.")
+        return redirect("integration-detail", slug=slug)

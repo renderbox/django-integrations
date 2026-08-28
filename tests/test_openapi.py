@@ -11,11 +11,17 @@ class TestGetOpenapiSchema:
         assert "/integrations/" in paths
         assert "/integrations/{slug}/" in paths
         assert "/integrations/{slug}/configuration/" in paths
+        assert "/integrations/{slug}/test/" in paths
 
     def test_configuration_path_has_all_four_methods(self):
         schema = get_openapi_schema()
         methods = schema["paths"]["/integrations/{slug}/configuration/"]
         assert set(methods) == {"get", "put", "patch", "delete"}
+
+    def test_test_path_is_post_only(self):
+        schema = get_openapi_schema()
+        methods = schema["paths"]["/integrations/{slug}/test/"]
+        assert set(methods) == {"post"}
 
 
 class TestOpenApiSchemaEndpoint:

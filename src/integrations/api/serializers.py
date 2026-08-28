@@ -19,6 +19,7 @@ def serialize_integration_summary(
         "description": integration_cls.description,
         "fields": [field.api_metadata() for field in integration_cls.get_fields()],
         "configured": services.is_configured(scope, integration_cls.slug),
+        "capabilities": list(integration_cls.capabilities),
     }
 
 

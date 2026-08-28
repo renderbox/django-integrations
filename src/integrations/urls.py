@@ -13,4 +13,9 @@ urlpatterns = [
         name="integration-configure",
     ),
     path("<slug:slug>/delete/", views.DeleteView.as_view(), name="integration-delete"),
+    path(
+        "<slug:slug>/test/",
+        views.TestConnectionView.as_view(),
+        name="integration-test",
+    ),
 ]

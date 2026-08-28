@@ -42,3 +42,12 @@ class IntegrationNotRegisteredError(IntegrationError):
 
 class DecryptionError(IntegrationError):
     """None of the configured ENCRYPTED_FIELD_KEYS could decrypt a value."""
+
+
+class CapabilityNotSupportedError(IntegrationError):
+    """test_connection() was invoked for an integration that doesn't
+    declare the capability."""
+
+    def __init__(self, slug: str):
+        self.slug = slug
+        super().__init__(f"{slug!r} does not support connection testing.")

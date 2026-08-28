@@ -3,6 +3,7 @@ from integrations.views.integrations import (
     DeleteView,
     IntegrationDetailView,
     IntegrationListView,
+    TestConnectionView,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "DeleteView",
     "IntegrationDetailView",
     "IntegrationListView",
+    "TestConnectionView",
 ]

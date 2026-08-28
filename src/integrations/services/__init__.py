@@ -4,6 +4,7 @@ from integrations.services.credentials import (
     get_credential,
     is_configured,
     save_config,
+    test_connection,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "get_credential",
     "is_configured",
     "save_config",
+    "test_connection",
 ]

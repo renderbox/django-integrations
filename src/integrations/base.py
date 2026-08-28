@@ -1,5 +1,6 @@
 from typing import Any, ClassVar
 
+from integrations.capabilities import ConnectionTestResult
 from integrations.exceptions import FieldValidationError, IntegrationValidationError
 from integrations.fields.base import CLEAR, UNSET, IntegrationField
 
@@ -154,3 +155,30 @@ class Integration:
         entry, or per-field entries) to fail. Do not perform external
         connection tests here - see Phase 11's test_connection().
         """
+
+    @classmethod
+    def test_connection(cls, config: IntegrationConfig) -> ConnectionTestResult:
+        """
+        Attempt to verify connectivity/credentials against the real
+        provider. Only meaningful for integrations that declare
+        "test_connection" in `capabilities` - override this on the
+        subclass to implement the real check; the base implementation
+        raises, so a declared-but-unimplemented capability fails loudly
+        rather than pretending to work.
+
+        `config.secrets` holds real, decrypted values here - this method
+        needs them to actually authenticate. Never called as a side
+        effect of clean()/save - only when a caller explicitly invokes it
+        (via the services layer, which is the only place that should call
+        this directly).
+
+        Must not embed secret values in any exception it raises: unknown
+        exceptions raised here are logged in full server-side by the
+        service layer for operator debugging, but are not otherwise
+        sanitized before being logged - "avoid leaking credentials in
+        errors" is primarily a requirement on this method's
+        implementation, not something the caller can guarantee for you.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__} does not implement test_connection()."
+        )

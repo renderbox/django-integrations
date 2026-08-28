@@ -4,6 +4,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.sites.models import Site
 
 from integrations import Integration, registry
+from integrations.capabilities import TEST_CONNECTION, ConnectionTestResult
 from integrations.fields import SecretField, TextField
 from integrations.scopes import IntegrationScope
 from integrations.services import credentials as services
@@ -20,9 +21,33 @@ class WidgetHtmlIntegration(Integration):
     ]
 
 
+class TestableWidgetHtmlIntegration(Integration):
+    # Not a pytest test class - see the note in test_credential_service.py.
+    __test__ = False
+
+    slug = "testable-widget-html"
+    name = "Testable Widget HTML"
+    capabilities = (TEST_CONNECTION,)
+    fields = [
+        TextField("account_id", required=True),
+        SecretField("api_key", required=True),
+    ]
+
+    @classmethod
+    def test_connection(cls, config):
+        if config.secrets.get("api_key") == "bad-key":
+            return ConnectionTestResult(success=False, message="Invalid API key.")
+        return ConnectionTestResult(success=True, message="Connected!")
+
+
 @pytest.fixture
 def registered(clean_registry):
     registry.register(WidgetHtmlIntegration)
+
+
+@pytest.fixture
+def registered_testable(clean_registry):
+    registry.register(TestableWidgetHtmlIntegration)
 
 
 @pytest.fixture
@@ -53,11 +78,25 @@ def plain_user(db):
     return get_user_model().objects.create_user(username="bob", password="x")
 
 
+@pytest.fixture
+def view_only_user(db):
+    user = get_user_model().objects.create_user(username="carol", password="x")
+    permission = Permission.objects.get(
+        content_type__app_label="integrations", codename="view_credential"
+    )
+    user.user_permissions.add(permission)
+    return get_user_model().objects.get(pk=user.pk)
+
+
 LIST_URL = "/integrations/"
 DETAIL_URL = "/integrations/widget-html/"
 CONFIGURE_URL = "/integrations/widget-html/configure/"
 DELETE_URL = "/integrations/widget-html/delete/"
 MISSING_DETAIL_URL = "/integrations/does-not-exist/"
+
+TESTABLE_DETAIL_URL = "/integrations/testable-widget-html/"
+TESTABLE_CONFIGURE_URL = "/integrations/testable-widget-html/configure/"
+TESTABLE_TEST_URL = "/integrations/testable-widget-html/test/"
 
 
 class TestAuthenticationRequired:
@@ -235,3 +274,95 @@ class TestDeleteView:
     def test_forbidden_without_delete_permission(self, registered, client, plain_user):
         client.force_login(plain_user)
         assert client.post(DELETE_URL).status_code == 403
+
+
+class TestTestConnectionButtonVisibility:
+    def test_hidden_when_capability_not_declared(
+        self, registered, client, full_access_user, scope
+    ):
+        services.save_config(
+            scope, "widget-html", {"account_id": "acct-1", "api_key": "sekrit"}
+        )
+        client.force_login(full_access_user)
+        response = client.get(DETAIL_URL)
+        assert "Test Connection" not in response.content.decode()
+
+    def test_hidden_when_not_configured(
+        self, registered_testable, client, full_access_user
+    ):
+        client.force_login(full_access_user)
+        response = client.get(TESTABLE_DETAIL_URL)
+        assert "Test Connection" not in response.content.decode()
+
+    def test_hidden_when_lacking_test_connection_permission_specifically(
+        self, registered_testable, client, view_only_user, scope
+    ):
+        # view_only_user can see the page (view_credential) but doesn't
+        # have change_credential, which can_test_connection maps to by
+        # default (Phase 7) - isolates the button's own gating from the
+        # page's own view-permission gating.
+        services.save_config(
+            scope,
+            "testable-widget-html",
+            {"account_id": "acct-1", "api_key": "sekrit"},
+        )
+        client.force_login(view_only_user)
+        response = client.get(TESTABLE_DETAIL_URL)
+        assert response.status_code == 200
+        assert "Test Connection" not in response.content.decode()
+
+    def test_shown_when_capability_configured_and_permitted(
+        self, registered_testable, client, full_access_user, scope
+    ):
+        services.save_config(
+            scope,
+            "testable-widget-html",
+            {"account_id": "acct-1", "api_key": "sekrit"},
+        )
+        client.force_login(full_access_user)
+        response = client.get(TESTABLE_DETAIL_URL)
+        assert "Test Connection" in response.content.decode()
+
+
+class TestTestConnectionViewPost:
+    def test_unsupported_capability_is_404(self, registered, client, full_access_user):
+        client.force_login(full_access_user)
+        response = client.post("/integrations/widget-html/test/")
+        assert response.status_code == 404
+
+    def test_success_flashes_message_and_redirects(
+        self, registered_testable, client, full_access_user, scope
+    ):
+        services.save_config(
+            scope,
+            "testable-widget-html",
+            {"account_id": "acct-1", "api_key": "good-key"},
+        )
+        client.force_login(full_access_user)
+        response = client.post(TESTABLE_TEST_URL, follow=True)
+        assert response.status_code == 200
+        assert "Connected!" in response.content.decode()
+
+    def test_failure_flashes_message_and_redirects(
+        self, registered_testable, client, full_access_user, scope
+    ):
+        services.save_config(
+            scope,
+            "testable-widget-html",
+            {"account_id": "acct-1", "api_key": "bad-key"},
+        )
+        client.force_login(full_access_user)
+        response = client.post(TESTABLE_TEST_URL, follow=True)
+        assert response.status_code == 200
+        assert "Invalid API key." in response.content.decode()
+
+    def test_forbidden_without_permission(
+        self, registered_testable, client, plain_user, scope
+    ):
+        services.save_config(
+            scope,
+            "testable-widget-html",
+            {"account_id": "acct-1", "api_key": "sekrit"},
+        )
+        client.force_login(plain_user)
+        assert client.post(TESTABLE_TEST_URL).status_code == 403

@@ -4,7 +4,9 @@ from django.db import connection
 
 from integrations import Integration, registry
 from integrations.base import CLEAR
+from integrations.capabilities import TEST_CONNECTION, ConnectionTestResult
 from integrations.exceptions import (
+    CapabilityNotSupportedError,
     IntegrationNotRegisteredError,
     IntegrationValidationError,
 )
@@ -12,6 +14,37 @@ from integrations.fields import SecretField, TextField
 from integrations.models import Credential
 from integrations.scopes import IntegrationScope
 from integrations.services import credentials as services
+
+
+class TestableIntegration(Integration):
+    # Not a pytest test class - pytest's default python_classes = Test*
+    # pattern matches "Testable..." too, which would otherwise make it try
+    # to collect test_connection() below as a test method.
+    __test__ = False
+
+    slug = "testable-service"
+    name = "Testable Service"
+    capabilities = (TEST_CONNECTION,)
+    fields = [
+        TextField("account_id", required=True),
+        SecretField("api_key", required=True),
+    ]
+    call_log: list = []
+
+    @classmethod
+    def test_connection(cls, config):
+        cls.call_log.append(config)
+        if config.secrets.get("api_key") == "boom-trigger":
+            raise RuntimeError("simulated failure containing secret sekrit-value-xyz")
+        return ConnectionTestResult(success=True, message="Connected!")
+
+
+@pytest.fixture
+def registered_testable(clean_registry):
+    TestableIntegration.call_log.clear()
+    registry.register(TestableIntegration)
+    yield
+    TestableIntegration.call_log.clear()
 
 
 class ExampleServiceIntegration(Integration):
@@ -246,3 +279,42 @@ class TestCrossTenantIsolation:
 
         assert services.is_configured(scope, "example-service") is False
         assert services.is_configured(other_scope, "example-service") is True
+
+
+class TestServiceTestConnection:
+    def test_success_path_returns_override_result_unchanged(
+        self, registered_testable, scope
+    ):
+        services.save_config(
+            scope, "testable-service", {"account_id": "acct-1", "api_key": "good-key"}
+        )
+        result = services.test_connection(scope, "testable-service")
+        assert result.success is True
+        assert result.message == "Connected!"
+
+    def test_not_configured_returns_failure_without_calling_override(
+        self, registered_testable, scope
+    ):
+        result = services.test_connection(scope, "testable-service")
+        assert result.success is False
+        assert TestableIntegration.call_log == []
+
+    def test_capability_not_declared_raises(self, registered, scope):
+        services.save_config(
+            scope, "example-service", {"account_id": "acct-1", "api_key": "sekrit"}
+        )
+        with pytest.raises(CapabilityNotSupportedError):
+            services.test_connection(scope, "example-service")
+
+    def test_unexpected_exception_is_caught_and_never_leaks_its_message(
+        self, registered_testable, scope
+    ):
+        services.save_config(
+            scope,
+            "testable-service",
+            {"account_id": "acct-1", "api_key": "boom-trigger"},
+        )
+        result = services.test_connection(scope, "testable-service")
+        assert result.success is False
+        assert "sekrit-value-xyz" not in result.message
+        assert "boom-trigger" not in result.message

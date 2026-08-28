@@ -1,12 +1,19 @@
+import logging
 from typing import Any, cast
 
 from django.db import transaction
 
 from integrations.base import Integration, IntegrationConfig
-from integrations.exceptions import IntegrationValidationError
+from integrations.capabilities import TEST_CONNECTION, ConnectionTestResult
+from integrations.exceptions import (
+    CapabilityNotSupportedError,
+    IntegrationValidationError,
+)
 from integrations.models import Credential
 from integrations.registry import get as get_integration
 from integrations.scopes import IntegrationScope
+
+logger = logging.getLogger(__name__)
 
 
 def get_credential(scope: IntegrationScope, slug: str) -> Credential | None:
@@ -128,10 +135,37 @@ def delete_config(scope: IntegrationScope, slug: str) -> bool:
     return deleted_count > 0
 
 
+def test_connection(scope: IntegrationScope, slug: str) -> ConnectionTestResult:
+    """
+    Runs the integration's test_connection() against the currently stored
+    configuration. Never raises for provider/network failures - those
+    come back as a failed ConnectionTestResult; the exception itself is
+    logged in full server-side (for operator debugging) but never
+    forwarded to the caller, since it may originate from arbitrary
+    third-party provider code and could embed a credential.
+    """
+    integration_cls = get_integration(slug)
+    if TEST_CONNECTION not in integration_cls.capabilities:
+        raise CapabilityNotSupportedError(slug)
+
+    if not is_configured(scope, slug):
+        return ConnectionTestResult(success=False, message="Not configured yet.")
+
+    config = get_config(scope, slug)
+    try:
+        return integration_cls.test_connection(config)
+    except Exception:
+        logger.exception("test_connection failed unexpectedly for %r", slug)
+        return ConnectionTestResult(
+            success=False, message="Connection test failed unexpectedly."
+        )
+
+
 __all__ = [
     "get_credential",
     "get_config",
     "is_configured",
     "save_config",
     "delete_config",
+    "test_connection",
 ]

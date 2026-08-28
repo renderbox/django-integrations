@@ -51,5 +51,11 @@
         <button type="button">Delete</button>
       </a>
     {% endif %}
+    {% if can_test_connection %}
+      <form method="post" action="{% url 'integration-test' slug=integration.slug %}" style="display: inline;">
+        {% csrf_token %}
+        <input type="submit" value="Test Connection">
+      </form>
+    {% endif %}
   </p>
 {% endblock %}

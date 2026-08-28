@@ -17,9 +17,20 @@
       .badge.configured { background: #e6f4ea; color: #1e7e34; }
       .badge.unconfigured { background: #f1f1f1; color: #666; }
       button, input[type="submit"] { padding: 0.4rem 1rem; }
+      .messages { list-style: none; padding: 0; margin: 0 0 1rem; }
+      .messages li { padding: 0.5rem 0.75rem; border-radius: 0.25rem; margin-bottom: 0.5rem; }
+      .messages li.success { background: #e6f4ea; color: #1e7e34; }
+      .messages li.error { background: #fdecea; color: #b00020; }
     </style>
   </head>
   <body>
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+          <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
     {% block content %}{% endblock %}
   </body>
 </html>
