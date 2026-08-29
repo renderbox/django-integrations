@@ -4,75 +4,63 @@
 
 # Django Integrations
 
-Tools for creating and managing multi-site integrations like API Keys and Tokens
+Tools for defining, storing, validating, and managing multi-site
+integrations - API keys, tokens, and their non-secret configuration -
+without duplicating each provider's schema across models, forms, an API,
+and an admin.
 
-## Prerequisites
+An `Integration` subclass is the single, canonical description of a
+provider. Everything else - encrypted secret storage, tenant-scoped
+retrieval, a generated edit form, JSON API metadata, secure partial
+updates - is derived from it:
 
-This pakcage makes use of Encrypted Fields that come form the [django-fernet-fields](https://github.com/orcasgit/django-fernet-fields) packages. Make sure to checkout their documentation for any questions related to Field Encryption.
+```python
+from integrations import Integration, register
+from integrations.fields import SecretField, TextField
 
-This package makes use of JSON fields so you'll need Download and install Postgresql. This will change with Django 3.1+ and the universal JSON field.
+@register
+class ZoomIntegration(Integration):
+    slug = "zoom"
+    name = "Zoom"
+    fields = [
+        TextField("account_id", label="Account ID", required=True),
+        SecretField("api_key", label="API Key", required=True),
+    ]
+```
+
+No stored secret is ever returned by any interface once saved.
 
 ## Installation
 
-```
-> pip install django-integration
-```
-
-## For Developers
-
-Make sure you run the following command to ensure you have all the requirements needed to us the develop example project:
-
-```
-pip install -e .[dev]
+```bash
+pip install django-integrations
 ```
 
-Then run the migration command inside the develop folder
+```python
+INSTALLED_APPS = [
+    ...,
+    "django.contrib.sites",
+    "integrations",
+]
 
-```
-./manage.py migrate
-```
-
-finally create a super user:
-
-```
-./manage.py createsuperuser
-```
-
-### Example
-
-In the develop django project you will find a core application that has three Forms each with its view to show case how to use the Credential Model in the integration package.
-
-For example you have a ZoomForm to present the user with the fields Zoom gives to use their API with you project. The ZoomForm is responsible for presenting and validating the fields and linking it to the credentials Model just like a normal ModelForm would.
-
-```
-class ZoomForm(forms.ModelForm):
-
-    class Meta:
-        model = Credential
-        fields = ['public_key', 'private_key']
-        labels = {
-            'public_key': "Zoom Key",
-            'private_key': "Zoom Secret"
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['public_key'].required = True
-        self.fields['private_key'].required = True
+SITE_ID = 1
+ENCRYPTED_FIELD_KEYS = ["..."]  # see docs/encryption.md - required
 ```
 
-It is in the view where it creates a Credential Model instance form the form submitted and saved. If you need to add additional fields or logic you can do it here, for example settting the site field in the Credential Model.
+Full documentation, including the required settings, the JSON API, the
+built-in HTML UI, and connection testing, is in [`docs/`](docs/index.md).
 
-```
-class ZoomFormView(FormView):
-    template_name = "core/form.html"
-    form_class = ZoomForm
-    success_url = reverse_lazy('integration-list')
+## For developers
 
-    def form_valid(self, form):
-        zoom = form.save(commit=False)
-        zoom.name = 'Zoom Integration'
-        zoom.site = Site.objects.get_current()
-        zoom.save()
-        return super().form_valid(form)
+```bash
+pip install -e ".[dev,test]"
+pytest --cov=integrations tests
 ```
+
+`develop/` is a complete, runnable Django project demonstrating the
+package (see [`docs/installation.md`](docs/installation.md#try-it) for
+how to run it) - its example integrations live in
+[`develop/core/integrations.py`](develop/core/integrations.py).
+
+See [`AGENTS.md`](AGENTS.md) and [`plan.md`](plan.md) for the
+architecture and the project's own development plan.

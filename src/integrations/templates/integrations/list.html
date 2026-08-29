@@ -1,0 +1,35 @@
+{% extends "integrations/base.html" %}
+
+{% block title %}Integrations{% endblock %}
+
+{% block content %}
+  <h1>Integrations</h1>
+  {% if integrations %}
+    <table>
+      <thead>
+        <tr>
+          <th>Integration</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in integrations %}
+          <tr>
+            <td>
+              <a href="{% url 'integration-detail' slug=entry.integration.slug %}">{{ entry.integration.name }}</a>
+            </td>
+            <td>
+              {% if entry.configured %}
+                <span class="badge configured">Configured</span>
+              {% else %}
+                <span class="badge unconfigured">Not configured</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No integrations are available.</p>
+  {% endif %}
+{% endblock %}

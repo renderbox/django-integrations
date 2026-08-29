@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-integrations"
-version = "0.5.0"
+version = "2.0.0"
 authors = [
   { name="Grant Viklund", email="renderbox@gmail.com" },
   { name="Roberto Himmelbauer" },
@@ -36,6 +36,7 @@ dev = [
     "flake8",
     "flake8-black",
     "mypy",
+    "django-stubs",
     "bandit",
     "isort",
     'dj-database-url',
@@ -47,6 +48,7 @@ dev = [
 test = [
     "coverage",
     "pytest",
+    "pytest-cov",
     "pytest-django>=4.12",
     'dj-database-url',
     'django-crispy-forms>=2.4',
@@ -62,8 +64,29 @@ test = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.poetry]
-packages = [
-    { include = "integrations", from = "src" },
-]
+[tool.black]
+
+[tool.isort]
+profile = "black"
+known_first_party = ["integrations"]
+
+[tool.mypy]
+python_version = "3.10"
+plugins = ["mypy_django_plugin.main"]
+mypy_path = "src"
+explicit_package_bases = true
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "tests.settings"
+
+[tool.bandit]
+exclude_dirs = ["tests", "develop"]
+
+[tool.coverage.run]
+source = ["integrations"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
 

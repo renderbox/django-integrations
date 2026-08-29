@@ -6,17 +6,21 @@ on:
 
 jobs:
   lint:
-    name: Lint and Format Check
+    name: Lint, Type Check, and Security Scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install black isort flake8
-      - run: black --check src
-      - run: isort --check-only src
-      - run: flake8 src
+      - run: pip install -e ".[dev,test]"
+      - run: black --check src tests
+      - run: isort --check-only src tests
+      - run: flake8 src tests
+      - run: mypy src tests
+        env:
+          DJANGO_SETTINGS_MODULE: tests.settings
+      - run: bandit -r src/
 
   migrations:
     name: Check Missing Migrations
@@ -82,4 +86,4 @@ jobs:
           DJANGO_DEBUG: 1
           DATABASE_URL: "postgres://runner:postgres@localhost:5432/test_db"
         run: |
-          PYTHONWARNINGS=always python -m pytest src/integrations develop
+          PYTHONWARNINGS=always python -m pytest --cov=integrations tests
