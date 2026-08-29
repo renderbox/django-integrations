@@ -137,7 +137,7 @@ unresolved decisions eliminated before model migration work begins.
     Django 6.0 requires Python >=3.12) --- no mypy, bandit, or coverage
     step anywhere yet.
 -   `.bumpversion.cfg` (`0.4.0`) is out of sync with `pyproject.toml`
-    (`1.5.0`) --- the automated `bumpversion.yml` workflow would bump
+    (`2.0.0`) --- the automated `bumpversion.yml` workflow would bump
     from the wrong base on its next run. Fixed in Phase 1.
 -   `README.md` claims a dependency on `django-fernet-fields` that
     doesn't exist (the field is actually self-contained) and never
