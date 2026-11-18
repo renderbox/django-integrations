@@ -65,6 +65,12 @@ test = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# Without this the wheel ships no templates and the built-in HTML views fail
+# with TemplateDoesNotExist once installed from PyPI (the tests run against
+# the source tree, so only the CI "package" job catches it).
+[tool.setuptools.package-data]
+integrations = ["templates/**/*"]
+
 [tool.black]
 
 [tool.isort]
