@@ -552,7 +552,7 @@ When touching credentials or APIs:
 
 Before implementing a v2 feature:
 
-1.  Read this file and `plan.md`.
+1.  Read this file and the plans in `plans/` (`000-v2.md` and the current one).
 2.  Inspect the current implementation and migrations.
 3.  Identify the public behavior affected.
 4.  Prefer tests that describe the desired v2 behavior before large
@@ -560,7 +560,7 @@ Before implementing a v2 feature:
 5.  Implement the smallest coherent architectural slice.
 6.  Run formatting, linting, typing, security, and tests.
 7.  Update documentation when public behavior changes.
-8.  Update `plan.md` as milestones are completed or architectural
+8.  Update the current plan in `plans/` as milestones are completed or architectural
     decisions change.
 
 Expected quality checks should eventually be equivalent to:
