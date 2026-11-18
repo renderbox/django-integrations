@@ -17,6 +17,7 @@ classifiers = [
     "Framework :: Django",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
+    "Framework :: Django :: 6.1",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -26,7 +27,7 @@ classifiers = [
 ]
 keywords = ["django", "app"]
 dependencies = [
-    "Django>=5.2,<6.1",
+    "Django>=5.2,<7.0",
     "cryptography (>=45.0.2,<46.0.0)",
 ]
 
@@ -63,6 +64,12 @@ test = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# Without this the wheel ships no templates and the built-in HTML views fail
+# with TemplateDoesNotExist once installed from PyPI (the tests run against
+# the source tree, so only the CI "package" job catches it).
+[tool.setuptools.package-data]
+integrations = ["templates/**/*"]
 
 [tool.black]
 

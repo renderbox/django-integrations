@@ -34,6 +34,30 @@ jobs:
       - run: pip install -e .[dev,test] # assumes extras_require for test deps
       - run: python develop/manage.py makemigrations --check --dry-run
 
+  package:
+    # The test job runs against the source tree, so it can't notice files
+    # missing from the built wheel (templates were, before 2.0.0). This
+    # installs the wheel alone and runs the suite against that install.
+    name: Built package
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Build the wheel
+        run: python -m pip wheel . --no-deps --wheel-dir dist
+      - name: Install it alone in a clean environment
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/python -m pip install dist/*.whl pytest pytest-django dj-database-url django-crispy-forms django-allauth django-extensions
+          /tmp/clean/bin/python -m pip check
+      - name: Run the tests against the installed package
+        run: |
+          /tmp/clean/bin/python -c "import integrations; assert 'site-packages' in integrations.__file__, integrations.__file__"
+          /tmp/clean/bin/python -m pytest -p no:cacheprovider tests
+
   test:
     name: Django ${{ matrix.django-version }} on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
@@ -56,6 +80,10 @@ jobs:
             django-version: "6.0"
           - python-version: "3.14"
             django-version: "6.0"
+          - python-version: "3.13"
+            django-version: "6.1"
+          - python-version: "3.14"
+            django-version: "6.1"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v5

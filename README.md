@@ -62,5 +62,5 @@ package (see [`docs/installation.md`](docs/installation.md#try-it) for
 how to run it) - its example integrations live in
 [`develop/core/integrations.py`](develop/core/integrations.py).
 
-See [`AGENTS.md`](AGENTS.md) and [`plan.md`](plan.md) for the
+See [`AGENTS.md`](AGENTS.md) and [`plans/`](plans/) for the
 architecture and the project's own development plan.
