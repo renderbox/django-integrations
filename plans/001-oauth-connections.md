@@ -186,6 +186,15 @@ account permission).
 - Fix anything 6.1 breaks; full checks.
 - Tag `v2.0.0` and publish (owner).
 - Deliverable: blackmesa-social can depend on `django-integrations>=2.0,<3.0` on Django 6.0 and 6.1.
+- Progress (2026-11-18):
+  - `Django>=5.2,<7.0` and the `Framework :: Django :: 6.1` classifier; CI adds 3.13 / 6.1 and 3.14 / 6.1 (3.14
+    against 6.0 was already there).
+  - Nothing broke on 6.1: 217 passed on Python 3.14 / Django 6.1.3 and on Python 3.13 / Django 6.1.3, with
+    `PYTHONWARNINGS=always` and no warnings (scratch environments; the run included the owner's untracked
+    `tests/test_migrate_legacy_credentials_example.py`). black, isort, flake8, mypy, bandit and
+    `makemigrations --check` clean on 3.14 / 6.1.
+  - Waiting on: a PR from `release/v2.0.0` into `develop`, CI, then `develop` into `main`; the owner tags `v2.0.0`
+    and runs the publish workflow (it runs only on `main`).
 
 ### Phase B: Rule change and definitions
 
