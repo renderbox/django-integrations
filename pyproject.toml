@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-integrations"
-version = "0.5.0"
+version = "2.0.0"
 authors = [
   { name="Grant Viklund", email="renderbox@gmail.com" },
   { name="Roberto Himmelbauer" },
@@ -17,6 +17,7 @@ classifiers = [
     "Framework :: Django",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
+    "Framework :: Django :: 6.1",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -26,7 +27,7 @@ classifiers = [
 ]
 keywords = ["django", "app"]
 dependencies = [
-    "Django>=5.2,<6.1",
+    "Django>=5.2,<7.0",
     "cryptography (>=45.0.2,<46.0.0)",
 ]
 
@@ -36,6 +37,7 @@ dev = [
     "flake8",
     "flake8-black",
     "mypy",
+    "django-stubs",
     "bandit",
     "isort",
     'dj-database-url',
@@ -47,6 +49,7 @@ dev = [
 test = [
     "coverage",
     "pytest",
+    "pytest-cov",
     "pytest-django>=4.12",
     'dj-database-url',
     'django-crispy-forms>=2.4',
@@ -62,8 +65,35 @@ test = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.poetry]
-packages = [
-    { include = "integrations", from = "src" },
-]
+# Without this the wheel ships no templates and the built-in HTML views fail
+# with TemplateDoesNotExist once installed from PyPI (the tests run against
+# the source tree, so only the CI "package" job catches it).
+[tool.setuptools.package-data]
+integrations = ["templates/**/*"]
+
+[tool.black]
+
+[tool.isort]
+profile = "black"
+known_first_party = ["integrations"]
+
+[tool.mypy]
+python_version = "3.10"
+plugins = ["mypy_django_plugin.main"]
+mypy_path = "src"
+explicit_package_bases = true
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "tests.settings"
+
+[tool.bandit]
+exclude_dirs = ["tests", "develop"]
+
+[tool.coverage.run]
+source = ["integrations"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
 

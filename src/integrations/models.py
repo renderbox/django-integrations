@@ -3,6 +3,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from .encrypted_fields import EncryptedTextField
+from .fields.encrypted import EncryptedJSONField
 
 
 def set_default_site_id():
@@ -37,7 +38,7 @@ class Credential(CreateUpdateModelBase):
         verbose_name=_("Site"),
         on_delete=models.CASCADE,
         default=set_default_site_id,
-        related_name="site",
+        related_name="credentials",
     )
     client_id = models.CharField(
         verbose_name=_("Client ID"), blank=True, null=True, max_length=50
@@ -51,8 +52,23 @@ class Credential(CreateUpdateModelBase):
     )
     attrs = models.JSONField(null=True, blank=True, default=dict)
 
+    # v2 schema-driven storage. Nullable/blank so existing (legacy) rows are
+    # unaffected; multiple NULL `integration` values per site are allowed by
+    # SQL's unique-constraint semantics, so pre-existing multi-row-per-site
+    # data (e.g. develop/core's Zoom/Vouchery/AuthorizeNet rows) is exempt.
+    integration = models.CharField(
+        verbose_name=_("Integration"), max_length=100, null=True, blank=True
+    )
+    config = models.JSONField(verbose_name=_("Configuration"), default=dict, blank=True)
+    secrets = EncryptedJSONField(verbose_name=_("Secrets"), default=dict, blank=True)
+
     objects = models.Manager()
 
     class Meta:
         verbose_name = "Credential"
         verbose_name_plural = "Credentials"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["site", "integration"], name="unique_site_integration"
+            )
+        ]
